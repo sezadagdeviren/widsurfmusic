@@ -16,6 +16,7 @@ import TrackPlayer, {
 import SongsScreen from './src/screens/SongsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import PlaylistsScreen from './src/screens/PlaylistsScreen';
 
 const Icon = MaterialIcons as any;
 
@@ -25,6 +26,8 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [tracks, setTracks] = useState<any[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<any[]>([]);
 
   useTrackPlayerEvents([Event.RemotePlay, Event.RemotePause, Event.RemoteNext, Event.RemotePrevious], async (event) => {
     if (event.type === Event.RemotePlay) {
@@ -111,19 +114,50 @@ function App() {
               setTracks={setTracks}
               currentTrackIndex={currentTrackIndex}
               setCurrentTrackIndex={setCurrentTrackIndex}
+              favorites={favorites}
+              setFavorites={setFavorites}
+              playlists={playlists}
+              setPlaylists={setPlaylists}
             />
           )}
         </Tab.Screen>
         <Tab.Screen 
           name="Favorites" 
-          component={FavoritesScreen} 
           options={{ 
             title: 'Favorites',
             tabBarIcon: ({ color, size }) => (
               <Icon name="favorite" size={size} color={color} />
             ),
           }}
-        />
+        >
+          {() => (
+            <FavoritesScreen 
+              favorites={favorites}
+              setFavorites={setFavorites}
+              tracks={tracks}
+              setTracks={setTracks}
+              currentTrackIndex={currentTrackIndex}
+              setCurrentTrackIndex={setCurrentTrackIndex}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen 
+          name="Playlists" 
+          options={{ 
+            title: 'Playlists',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="playlist-play" size={size} color={color} />
+            ),
+          }}
+        >
+          {() => (
+            <PlaylistsScreen 
+              playlists={playlists}
+              setPlaylists={setPlaylists}
+              tracks={tracks}
+            />
+          )}
+        </Tab.Screen>
         <Tab.Screen 
           name="Settings" 
           component={SettingsScreen} 
