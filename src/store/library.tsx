@@ -1,4 +1,3 @@
-import library from '@/assets/data/library.json'
 import { unknownTrackImageUri } from '@/constants/images'
 import { Artist, Playlist, TrackWithPlaylist } from '@/helpers/types'
 import { Track } from 'react-native-track-player'
@@ -8,10 +7,11 @@ interface LibraryState {
 	tracks: TrackWithPlaylist[]
 	toggleTrackFavorite: (track: Track) => void
 	addToPlaylist: (track: Track, playlistName: string) => void
+	addTracks: (newTracks: TrackWithPlaylist[]) => void
 }
 
 export const useLibraryStore = create<LibraryState>()((set) => ({
-	tracks: library,
+	tracks: [],
 	toggleTrackFavorite: (track) =>
 		set((state) => ({
 			tracks: state.tracks.map((currentTrack) => {
@@ -38,9 +38,14 @@ export const useLibraryStore = create<LibraryState>()((set) => ({
 				return currentTrack
 			}),
 		})),
+	addTracks: (newTracks) =>
+		set((state) => ({
+			tracks: [...state.tracks, ...newTracks],
+		})),
 }))
 
 export const useTracks = () => useLibraryStore((state) => state.tracks)
+export const addTracks = (newTracks: TrackWithPlaylist[]) => useLibraryStore.getState().addTracks(newTracks)
 
 export const useFavorites = () => {
 	const favorites = useLibraryStore((state) => state.tracks.filter((track) => track.rating === 1))

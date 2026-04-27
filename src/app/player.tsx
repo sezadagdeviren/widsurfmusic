@@ -31,10 +31,18 @@ const PlayerScreen = () => {
 		)
 	}
 
+	const gradientColors = imageColors
+		? 'background' in imageColors && 'primary' in imageColors
+			? [imageColors.background, imageColors.primary]
+			: 'dominant' in imageColors
+				? [imageColors.dominant, 'average' in imageColors ? imageColors.average : imageColors.dominant]
+				: [colors.background, colors.background]
+		: [colors.background, colors.background]
+
 	return (
 		<LinearGradient
 			style={{ flex: 1 }}
-			colors={imageColors ? [imageColors.background, imageColors.primary] : [colors.background]}
+			colors={gradientColors}
 		>
 			<View style={styles.overlayContainer}>
 				<DismissPlayerSymbol />

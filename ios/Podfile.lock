@@ -1002,6 +1002,10 @@ PODS:
   - React-Mapbuffer (0.73.6):
     - glog
     - React-debug
+  - react-native-document-picker (9.3.1):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
   - react-native-loader-kit (2.0.8):
     - NVActivityIndicatorView (= 5.1.1)
     - React-Core
@@ -1255,6 +1259,7 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector-modern`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
+  - react-native-document-picker (from `../node_modules/react-native-document-picker`)
   - react-native-loader-kit (from `../node_modules/react-native-loader-kit`)
   - "react-native-menu (from `../node_modules/@react-native-menu/menu`)"
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -1388,6 +1393,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   React-Mapbuffer:
     :path: "../node_modules/react-native/ReactCommon"
+  react-native-document-picker:
+    :path: "../node_modules/react-native-document-picker"
   react-native-loader-kit:
     :path: "../node_modules/react-native-loader-kit"
   react-native-menu:
@@ -1497,6 +1504,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 85583ef014ce53d731a98c66a0e24496f7a83066
   React-logger: 3eb80a977f0d9669468ef641a5e1fabbc50a09ec
   React-Mapbuffer: 84ea43c6c6232049135b1550b8c60b2faac19fab
+  react-native-document-picker: 23b6a82e09199f4f109376e73d88892a8931eeea
   react-native-loader-kit: ed18c8ce83b69083211912326897d8286f37d797
   react-native-menu: 9728f90160c36b9a75481fc76e05354b99d54c59
   react-native-safe-area-context: 0ee144a6170530ccc37a0fd9388e28d06f516a89
@@ -1533,4 +1541,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: db5a04e0eb2180bac81ff6a1a4e89f95f9a8b85b
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2
