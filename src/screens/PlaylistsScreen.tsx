@@ -3,8 +3,6 @@ import { View, Text, TouchableOpacity, TextInput, Modal, FlatList, Image, SafeAr
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import AlertModal from '../components/AlertModal';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import Animated, { FadeInRight, FadeInDown, Layout, SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { getArtworkUri } from '../utils/musicUtils';
 
 const Icon = MaterialIcons as any;
@@ -54,47 +52,47 @@ export default function PlaylistsScreen() {
 
   if (selectedPlaylist) {
     return (
-      <Animated.View entering={SlideInRight} exiting={SlideOutRight} className="flex-1 bg-spotify-black">
-        <LinearGradient colors={['#282828', '#121212']} className="flex-1">
-          <SafeAreaView className="flex-1">
-            <View className="flex-row items-center px-6 py-4">
-              <TouchableOpacity onPress={() => setSelectedPlaylist(null)} className="p-2 -ml-2">
-                <Icon name="arrow-back" size={28} color="white" />
-              </TouchableOpacity>
-              <View className="flex-1 ml-4">
-                <Text className="text-white text-2xl font-bold" numberOfLines={1}>{selectedPlaylist.name}</Text>
-                <Text className="text-spotify-gray text-xs uppercase tracking-widest">{selectedPlaylist.tracks.length} Tracks</Text>
-              </View>
-              <TouchableOpacity className="p-2 mr-2" onPress={() => startEditing(selectedPlaylist.id, selectedPlaylist.name)}>
-                <Icon name="edit" size={24} color="#B3B3B3" />
-              </TouchableOpacity>
-              <TouchableOpacity className="p-2" onPress={() => deletePlaylist(selectedPlaylist.id).then(() => setSelectedPlaylist(null))}>
-                <Icon name="delete-outline" size={24} color="#ff4444" />
-              </TouchableOpacity>
+      <View className="flex-1 bg-spotify-black">
+        <SafeAreaView className="flex-1">
+          <View className="flex-row items-center px-6 py-4">
+            <TouchableOpacity onPress={() => setSelectedPlaylist(null)} className="p-2 -ml-2">
+              <Icon name="arrow-back" size={28} color="white" />
+            </TouchableOpacity>
+            <View className="flex-1 ml-4">
+              <Text className="text-white text-2xl font-bold" numberOfLines={1}>{selectedPlaylist.name}</Text>
+              <Text className="text-spotify-gray text-xs uppercase tracking-widest">{selectedPlaylist.tracks.length} Tracks</Text>
             </View>
+            <TouchableOpacity className="p-2 mr-2" onPress={() => startEditing(selectedPlaylist.id, selectedPlaylist.name)}>
+              <Icon name="edit" size={24} color="#B3B3B3" />
+            </TouchableOpacity>
+            <TouchableOpacity className="p-2" onPress={() => deletePlaylist(selectedPlaylist.id).then(() => setSelectedPlaylist(null))}>
+              <Icon name="delete-outline" size={24} color="#ff4444" />
+            </TouchableOpacity>
+          </View>
 
-            <FlatList
-              data={selectedPlaylist.tracks}
-              keyExtractor={(item, index) => `pl-detail-${selectedPlaylist.id}-${item.id}-${index}`}
-              contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
-              ListHeaderComponent={
-                <View className="items-center py-8">
-                  <View className="w-48 h-48 bg-spotify-lighter rounded-3xl items-center justify-center shadow-2xl mb-6 overflow-hidden">
-                    <LinearGradient colors={['#1DB95420', '#1DB95410']} className="w-full h-full items-center justify-center">
-                      <Icon name="playlist-play" size={80} color="#1DB954" />
-                    </LinearGradient>
+          <FlatList
+            data={selectedPlaylist.tracks}
+            keyExtractor={(item, index) => `pl-detail-${selectedPlaylist.id}-${item.id}-${index}`}
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
+            ListHeaderComponent={
+              <View className="items-center py-8">
+                <View className="w-48 h-48 bg-spotify-lighter rounded-3xl items-center justify-center shadow-2xl mb-6 overflow-hidden">
+                  <View className="w-full h-full items-center justify-center bg-spotify-lighter/10">
+                    <Icon name="playlist-play" size={80} color="#1DB954" />
                   </View>
-                  <TouchableOpacity 
-                    className="bg-spotify-green px-10 py-4 rounded-full shadow-lg flex-row items-center"
-                    onPress={() => playPlaylist(selectedPlaylist.tracks, 0)}
-                  >
-                    <Icon name="play-arrow" size={24} color="black" />
-                    <Text className="text-black font-bold ml-2 uppercase tracking-widest text-sm">Play All</Text>
-                  </TouchableOpacity>
                 </View>
-              }
-              renderItem={({ item: track, index }) => (
-                <Animated.View entering={FadeInRight.delay(index * 50)} className="mb-4">
+                <TouchableOpacity 
+                  className="bg-spotify-green px-10 py-4 rounded-full shadow-lg flex-row items-center"
+                  onPress={() => playPlaylist(selectedPlaylist.tracks, 0)}
+                >
+                  <Icon name="play-arrow" size={24} color="black" />
+                  <Text className="text-black font-bold ml-2 uppercase tracking-widest text-sm">Play All</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            renderItem={({ item: track, index }) => {
+              return (
+                <View className="mb-4">
                   <TouchableOpacity 
                     className="flex-row items-center p-3 bg-spotify-dark/40 rounded-2xl border border-white/5"
                     onPress={() => playPlaylist(selectedPlaylist.tracks, index)}
@@ -112,23 +110,23 @@ export default function PlaylistsScreen() {
                     </View>
                     <Icon name="more-vert" size={20} color="#B3B3B3" />
                   </TouchableOpacity>
-                </Animated.View>
-              )}
-              ListEmptyComponent={
-                <View className="items-center justify-center pt-20">
-                  <Icon name="library-music" size={48} color="#282828" />
-                  <Text className="text-spotify-gray mt-4">This playlist is empty</Text>
                 </View>
-              }
-            />
-          </SafeAreaView>
-        </LinearGradient>
-      </Animated.View>
+              );
+            }}
+            ListEmptyComponent={
+              <View className="items-center justify-center pt-20">
+                <Icon name="library-music" size={48} color="#282828" />
+                <Text className="text-spotify-gray mt-4">This playlist is empty</Text>
+              </View>
+            }
+          />
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={['#191414', '#121212']} className="flex-1">
+    <View className="flex-1 bg-spotify-black">
       <SafeAreaView className="flex-1">
         <View className="p-6 flex-row justify-between items-center">
           <View>
@@ -143,37 +141,37 @@ export default function PlaylistsScreen() {
           </TouchableOpacity>
         </View>
 
-        <Animated.FlatList
+        <FlatList
           data={playlists}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
-          itemLayoutAnimation={Layout.springify()}
-          renderItem={({ item: playlist, index }) => (
-            <Animated.View entering={FadeInRight.delay(index * 100)} className="mb-4">
-              <TouchableOpacity 
-                className="flex-row items-center p-4 bg-spotify-dark/60 rounded-3xl border border-white/5"
-                onPress={() => setSelectedPlaylist(playlist)}
-              >
-                <View className="w-16 h-16 rounded-2xl mr-4 items-center justify-center overflow-hidden" style={{ backgroundColor: playlist.color + '15' }}>
-                  <Icon name="playlist-play" size={32} color={playlist.color} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-white text-lg font-bold">{playlist.name}</Text>
-                  <Text className="text-spotify-gray text-sm">{playlist.tracks.length} Tracks</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <TouchableOpacity onPress={() => startEditing(playlist.id, playlist.name)} className="p-2 mr-1">
-                    <Icon name="edit" size={20} color="#B3B3B3" />
-                  </TouchableOpacity>
-                  <Icon name="chevron-right" size={24} color="#404040" />
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+          renderItem={({ item: playlist, index }) => {
+            return (
+              <View className="mb-4">
+                <TouchableOpacity 
+                  className="flex-row items-center p-4 bg-spotify-dark/60 rounded-3xl border border-white/5"
+                  onPress={() => setSelectedPlaylist(playlist)}
+                >
+                  <View className="w-16 h-16 rounded-2xl mr-4 items-center justify-center overflow-hidden" style={{ backgroundColor: playlist.color + '15' }}>
+                    <Icon name="playlist-play" size={32} color={playlist.color} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-white text-lg font-bold">{playlist.name}</Text>
+                    <Text className="text-spotify-gray text-sm">{playlist.tracks.length} Tracks</Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <TouchableOpacity onPress={() => startEditing(playlist.id, playlist.name)} className="p-2 mr-1">
+                      <Icon name="edit" size={20} color="#B3B3B3" />
+                    </TouchableOpacity>
+                    <Icon name="chevron-right" size={24} color="#404040" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            );
+          }}
         />
       </SafeAreaView>
 
-      {/* New Playlist Modal */}
       <Modal visible={isModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 bg-black/80 items-center justify-center p-6">
           <View className="bg-spotify-dark p-8 rounded-[40px] w-full border border-white/10 shadow-2xl">
@@ -198,7 +196,6 @@ export default function PlaylistsScreen() {
         </View>
       </Modal>
 
-      {/* Edit Playlist Name Modal */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 bg-black/80 items-center justify-center p-6">
           <View className="bg-spotify-dark p-8 rounded-[40px] w-full border border-white/10 shadow-2xl">
@@ -226,6 +223,6 @@ export default function PlaylistsScreen() {
       {alert && (
         <AlertModal visible={alert.visible} title={alert.title} message={alert.message} type={alert.type} onClose={() => setAlert(null)} />
       )}
-    </LinearGradient>
+    </View>
   );
 }

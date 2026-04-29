@@ -23,38 +23,57 @@ export const getArtworkUri = (artwork?: string) => {
   return `file://${artwork}`;
 };
 
-export const extractArtwork = async (filePath: string): Promise<MetadataResult> => {
+/**
+ * Metadata çıkarır ve kapak görselini diske kaydeder.
+ * OPTİMİZASYON: Tüm dosyayı okumak yerine sadece ilk 300KB'ı okur (ID3v2 etiketleri genelde baştadır).
+ */
+export const extractArtwork = async (filePath: string, trackId: string): Promise<MetadataResult> => {
   try {
     const cleanPath = filePath.startsWith('file://') ? filePath.replace('file://', '') : filePath;
     const exists = await RNFS.exists(cleanPath);
     
     if (!exists) return {};
 
-    // React Native'de jsmediatags doğrudan path okuyamaz. 
-    // Dosyayı önce base64 olarak okuyup buffer'a çevirmeliyiz.
-    const fileBase64 = await RNFS.readFile(cleanPath, 'base64');
-    const buffer = Buffer.from(fileBase64, 'base64');
+    // Dosyanın sadece ilk 300KB'lık kısmını oku (ID3v2 etiketleri genelde buradadır)
+    // Bu sayede 20MB'lık dosyayı belleğe yüklemekten kurtuluruz.
+    const READ_SIZE = 300 * 1024; 
+    const fileContent = await RNFS.read(cleanPath, READ_SIZE, 0, 'base64');
+    const buffer = Buffer.from(fileContent, 'base64');
 
     return new Promise((resolve) => {
       jsmediatags.read(buffer, {
-        onSuccess: (tag: any) => {
+        onSuccess: async (tag: any) => {
           const { image, picture, title, artist } = tag.tags;
           const artworkData = image || picture;
-          let artworkUri: string | undefined;
+          let artworkPath: string | undefined;
           
           if (artworkData) {
-            const base64String = Buffer.from(artworkData.data).toString('base64');
-            artworkUri = `data:${artworkData.format};base64,${base64String}`;
+            try {
+              const base64String = Buffer.from(artworkData.data).toString('base64');
+              const artworkDir = `${RNFS.DocumentDirectoryPath}/artworks`;
+              
+              if (!(await RNFS.exists(artworkDir))) {
+                await RNFS.mkdir(artworkDir);
+              }
+              
+              const fileName = `${trackId}.jpg`;
+              artworkPath = `${artworkDir}/${fileName}`;
+              
+              await RNFS.writeFile(artworkPath, base64String, 'base64');
+            } catch (err) {
+              console.error('Artwork save error:', err);
+            }
           }
 
           resolve({
-            artwork: artworkUri,
+            artwork: artworkPath,
             title: title || undefined,
             artist: artist || undefined
           });
         },
         onError: (error: any) => {
-          console.log('jsmediatags error:', error);
+          // Eğer 300KB yetmediyse veya ID3v1 (dosya sonunda) kullanılıyorsa buraya düşebilir.
+          // Bu durumda sessizce boş döner veya istenirse tüm dosya okunabilir (önerilmez).
           resolve({});
         }
       });

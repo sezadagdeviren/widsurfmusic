@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Platform, PermissionsAndroid } from 'react-native';
 import TrackPlayer, { 
   usePlaybackState, 
@@ -22,6 +22,8 @@ interface MusicContextType {
   repeatMode: RepeatMode;
   isShuffle: boolean;
   isScanning: boolean;
+  scanProgress: number;
+  scanTotal: number;
   alert: AlertState | null;
   setAlert: (alert: AlertState | null) => void;
   favorites: string[];
@@ -33,14 +35,14 @@ interface MusicContextType {
   skipToNext: () => Promise<void>;
   skipToPrevious: () => Promise<void>;
   toggleRepeatMode: () => Promise<void>;
-  toggleShuffle: () => void;
+  toggleShuffle: () => Promise<void>;
   scanMusicFiles: (silent?: boolean) => Promise<void>;
   addToFavorites: (track: MusicTrack) => Promise<void>;
   removeFromFavorites: (trackId: string) => Promise<void>;
   addToPlaylist: (playlistId: string, track: MusicTrack) => Promise<void>;
   createPlaylist: (name: string, color: string) => Promise<boolean>;
   deletePlaylist: (id: string) => Promise<void>;
-  renamePlaylist: (id: string, newName: string) => Promise<void>; // Yeni eklendi
+  renamePlaylist: (id: string, newName: string) => Promise<void>;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -58,17 +60,17 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const [repeatMode, setRepeatMode] = useState(RepeatMode.Off);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanTotal, setScanTotal] = useState(0);
   const [alert, setAlert] = useState<AlertState | null>(null);
+
+  const shuffleQueue = useRef<number[]>([]);
 
   const playbackState = usePlaybackState() as { state: State | undefined };
   const { position, duration } = useProgress();
 
   useEffect(() => {
-    const init = async () => {
-      await loadInitialData();
-      scanMusicFiles(true);
-    };
-    init();
+    loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
@@ -88,29 +90,76 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
 
       const queue = await TrackPlayer.getQueue();
       if (queue.length === 0 && lastTracks) {
-        const parsedTracks = JSON.parse(lastTracks);
+        const parsedTracks: MusicTrack[] = JSON.parse(lastTracks);
+        
         setTracks(parsedTracks);
-        await TrackPlayer.add(parsedTracks);
-        if (lastIndex) {
-          const index = parseInt(lastIndex);
-          setCurrentTrackIndex(index);
-          await TrackPlayer.skip(index);
+        if (parsedTracks.length > 0) {
+          await TrackPlayer.add(parsedTracks);
+          if (lastIndex) {
+            const index = parseInt(lastIndex);
+            const safeIndex = index < parsedTracks.length ? index : 0;
+            setCurrentTrackIndex(safeIndex);
+            await TrackPlayer.skip(safeIndex);
+          }
         }
+
+        setTimeout(async () => {
+          const validTracks: MusicTrack[] = [];
+          let needsUpdate = false;
+          for (const track of parsedTracks) {
+            const path = track.url.replace('file://', '');
+            if (await RNFS.exists(path)) {
+              validTracks.push(track);
+            } else {
+              needsUpdate = true;
+            }
+          }
+          if (needsUpdate) {
+            setTracks(validTracks);
+            await TrackPlayer.reset();
+            if (validTracks.length > 0) await TrackPlayer.add(validTracks);
+            await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(validTracks));
+          }
+        }, 1000);
+
       } else if (queue.length > 0) {
         const currentIdx = await TrackPlayer.getCurrentTrack();
+        const currentTrack = queue[currentIdx ?? 0];
         setTracks(queue as MusicTrack[]);
-        setCurrentTrackIndex(currentIdx ?? 0);
+        const naturalIndex = (queue as MusicTrack[]).findIndex(t => t.url === currentTrack?.url);
+        setCurrentTrackIndex(naturalIndex !== -1 ? naturalIndex : 0);
       }
     } catch (e) {
       console.error('Persistence load error:', e);
     }
   };
 
-  useTrackPlayerEvents([Event.PlaybackTrackChanged], async (event) => {
+  const generateShuffleQueue = (total: number, excludeIndex: number = -1) => {
+    let indices = Array.from({ length: total }, (_, i) => i);
+    if (excludeIndex !== -1) {
+      indices = indices.filter(i => i !== excludeIndex);
+    }
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    shuffleQueue.current = indices;
+  };
+
+  useTrackPlayerEvents([Event.PlaybackTrackChanged, Event.PlaybackQueueEnded], async (event) => {
     if (event.type === Event.PlaybackTrackChanged && event.nextTrack !== undefined) {
-      const index = event.nextTrack;
-      setCurrentTrackIndex(index);
-      await AsyncStorage.setItem(LAST_INDEX_KEY, index.toString());
+      const queue = await TrackPlayer.getQueue();
+      const nextTrack = queue[event.nextTrack];
+      if (nextTrack) {
+        const naturalIndex = tracks.findIndex(t => t.url === nextTrack.url);
+        if (naturalIndex !== -1) {
+          setCurrentTrackIndex(naturalIndex);
+          await AsyncStorage.setItem(LAST_INDEX_KEY, naturalIndex.toString());
+        }
+      }
+    }
+    if (event.type === Event.PlaybackQueueEnded && isShuffle && tracks.length > 0) {
+      await skipToNext();
     }
   });
 
@@ -140,6 +189,7 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
       await TrackPlayer.play();
       setCurrentTrackIndex(index);
       await AsyncStorage.setItem(LAST_INDEX_KEY, index.toString());
+      if (isShuffle) generateShuffleQueue(tracks.length, index);
     } catch (e) {
       console.error('Play error:', e);
     }
@@ -147,6 +197,7 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
 
   const playPlaylist = async (playlistTracks: MusicTrack[], index: number) => {
     try {
+      if (isShuffle) setIsShuffle(false);
       await TrackPlayer.reset();
       await TrackPlayer.add(playlistTracks);
       await TrackPlayer.skip(index);
@@ -156,7 +207,19 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const skipToNext = () => TrackPlayer.skipToNext();
+  const skipToNext = async () => {
+    if (isShuffle && tracks.length > 0) {
+      if (shuffleQueue.current.length === 0) generateShuffleQueue(tracks.length, currentTrackIndex);
+      const nextIndex = shuffleQueue.current.shift();
+      if (nextIndex !== undefined) {
+        await TrackPlayer.skip(nextIndex);
+        await TrackPlayer.play();
+      }
+    } else {
+      await TrackPlayer.skipToNext();
+    }
+  };
+
   const skipToPrevious = () => TrackPlayer.skipToPrevious();
 
   const toggleRepeatMode = async () => {
@@ -167,51 +230,130 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     setRepeatMode(nextMode);
   };
 
-  const toggleShuffle = () => setIsShuffle(!isShuffle);
+  const toggleShuffle = async () => {
+    const newState = !isShuffle;
+    setIsShuffle(newState);
+    if (newState && tracks.length > 0) {
+      generateShuffleQueue(tracks.length, currentTrackIndex);
+    } else {
+      const currentIndex = await TrackPlayer.getCurrentTrack();
+      const queue = await TrackPlayer.getQueue();
+      const currentTrack = queue[currentIndex ?? 0];
+      const naturalIndex = tracks.findIndex(t => t.url === currentTrack?.url);
+      await TrackPlayer.reset();
+      await TrackPlayer.add(tracks);
+      if (naturalIndex !== -1) {
+        await TrackPlayer.skip(naturalIndex);
+        await TrackPlayer.play();
+      }
+    }
+  };
 
   const scanMusicFiles = async (silent: boolean = false) => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
     
-    if (!silent) setIsScanning(true);
+    if (!silent) {
+      setIsScanning(true);
+      setScanProgress(0);
+      setScanTotal(0);
+    }
     
     try {
-      const folders = [`${RNFS.ExternalStorageDirectoryPath}/Music`, `${RNFS.ExternalStorageDirectoryPath}/Download`, `${RNFS.ExternalStorageDirectoryPath}/DCIM` ];
-      let foundTracks: MusicTrack[] = [];
+      const folders = [
+        `${RNFS.ExternalStorageDirectoryPath}/Music`, 
+        `${RNFS.ExternalStorageDirectoryPath}/Download`, 
+        `${RNFS.ExternalStorageDirectoryPath}/DCIM` 
+      ];
+      
+      let allAudioFiles: RNFS.ReadDirItem[] = [];
+
       for (const folder of folders) {
         if (await RNFS.exists(folder)) {
           const files = await RNFS.readDir(folder);
-          const audioFiles = files.filter(f => f.isFile() && /\.(mp3|m4a|wav)$/i.test(f.name));
-          const songs = await Promise.all(audioFiles.map(async (file, i) => {
-            const meta = await extractArtwork(file.path);
-            return { id: `scan-${file.name}-${Date.now()}-${i}`, url: `file://${file.path}`, title: meta.title || file.name.replace(/\.[^/.]+$/, ""), artist: meta.artist || 'Local Scan', artwork: meta.artwork } as MusicTrack;
-          }));
-          foundTracks = [...foundTracks, ...songs];
+          allAudioFiles = [...allAudioFiles, ...files.filter(f => f.isFile() && /\.(mp3|m4a|wav)$/i.test(f.name))];
         }
       }
+
+      if (!silent) setScanTotal(allAudioFiles.length);
+
+      // --- HIZ İYİLEŞTİRMESİ 1: In-Memory Varlık Kontrolü ---
+      // 500 tane 'exists' bridge çağrısı yapmak yerine hafızadaki listeden kontrol et
+      const allPathsSet = new Set(allAudioFiles.map(f => `file://${f.path}`));
+      const validTracks = tracks.filter(t => allPathsSet.has(t.url));
+
+      const existingUrls = new Set(validTracks.map(t => t.url));
+      let newTracksToAdd: MusicTrack[] = [];
+
+      for (const file of allAudioFiles) {
+        const fileUrl = `file://${file.path}`;
+        if (!existingUrls.has(fileUrl)) {
+          newTracksToAdd.push({
+            id: `track-${file.name}-${Date.now()}-${newTracksToAdd.length}`,
+            url: fileUrl,
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            artist: 'Loading...',
+          });
+        }
+      }
+
+      const initialFullList = [...validTracks, ...newTracksToAdd];
       
-      if (foundTracks.length > 0) {
-        const trackMap = new Map();
-        tracks.forEach(t => { const key = `${t.title.toLowerCase().trim()}|${t.artist.toLowerCase().trim()}`; if (!trackMap.has(key)) trackMap.set(key, t); });
-        foundTracks.forEach(t => { const key = `${t.title.toLowerCase().trim()}|${t.artist.toLowerCase().trim()}`; if (!trackMap.has(key)) trackMap.set(key, t); });
-        const uniqueTracks = Array.from(trackMap.values());
+      if (newTracksToAdd.length > 0 || validTracks.length !== tracks.length) {
+        setTracks(initialFullList);
+        await TrackPlayer.reset();
+        if (initialFullList.length > 0) await TrackPlayer.add(initialFullList);
+        await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(initialFullList));
+      }
+
+      // --- HIZ İYİLEŞTİRMESİ 2: Eşzamanlılık Artırımı ---
+      const CONCURRENCY = 10; // Aynı anda 10 dosya işle
+      let finalTracks = [...initialFullList];
+      let processed = 0;
+
+      for (let i = 0; i < finalTracks.length; i += CONCURRENCY) {
+        const chunk = finalTracks.slice(i, i + CONCURRENCY);
         
-        if (uniqueTracks.length > tracks.length) {
-          await TrackPlayer.reset();
-          await TrackPlayer.add(uniqueTracks);
-          setTracks(uniqueTracks);
-          await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(uniqueTracks));
-          if (!silent) {
-            setAlert({ visible: true, title: 'Success', message: `${uniqueTracks.length - tracks.length} new tracks found`, type: 'success' });
+        await Promise.all(chunk.map(async (track, chunkIdx) => {
+          const globalIdx = i + chunkIdx;
+          if (track.artist === 'Loading...') {
+            try {
+              const meta = await extractArtwork(track.url, track.id);
+              finalTracks[globalIdx] = {
+                ...track,
+                title: meta.title || track.title,
+                artist: meta.artist || 'Local Scan',
+                artwork: meta.artwork
+              };
+            } catch (e) {
+              finalTracks[globalIdx] = { ...track, artist: 'Local Scan' };
+            }
           }
-        } else if (!silent) {
-          setAlert({ visible: true, title: 'Info', message: 'No new music found', type: 'info' });
+          processed++;
+        }));
+
+        // --- HIZ İYİLEŞTİRMESİ 3: Batch UI Update ---
+        // Her 20 şarkıda bir (veya tarama sonuna yaklaşıldığında) ekranı güncelle
+        if (processed % 20 === 0 || processed === finalTracks.length) {
+           setTracks([...finalTracks]);
+           if (!silent) setScanProgress(processed);
         }
       }
+
+      await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(finalTracks));
+      
+      if (!silent && newTracksToAdd.length > 0) {
+        setAlert({ visible: true, title: 'Success', message: 'Library updated.', type: 'success' });
+      }
+
     } catch (e) {
-      if (!silent) setAlert({ visible: true, title: 'Error', message: 'Scan failed', type: 'error' });
+      console.error('Scan error:', e);
     } finally {
-      if (!silent) setIsScanning(false);
+      if (!silent) {
+        setIsScanning(false);
+        setScanProgress(0);
+        setScanTotal(0);
+      }
     }
   };
 
@@ -295,7 +437,35 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const favoriteTracks = tracks.filter(t => favorites.includes(t.id));
 
   const value = {
-    tracks, currentTrackIndex, playbackState, position, duration, repeatMode, isShuffle, isScanning, alert, setAlert, favorites, favoriteTracks, playlists, togglePlayback, playTrack, playPlaylist, skipToNext, skipToPrevious, toggleRepeatMode, toggleShuffle, scanMusicFiles, removeFromFavorites, addToFavorites, addToPlaylist, createPlaylist, renamePlaylist, deletePlaylist
+    tracks, 
+    currentTrackIndex, 
+    playbackState, 
+    position, 
+    duration, 
+    repeatMode, 
+    isShuffle, 
+    isScanning, 
+    scanProgress,
+    scanTotal,
+    alert, 
+    setAlert, 
+    favorites, 
+    favoriteTracks, 
+    playlists, 
+    togglePlayback, 
+    playTrack, 
+    playPlaylist, 
+    skipToNext, 
+    skipToPrevious, 
+    toggleRepeatMode, 
+    toggleShuffle, 
+    scanMusicFiles, 
+    removeFromFavorites, 
+    addToFavorites, 
+    addToPlaylist, 
+    createPlaylist, 
+    renamePlaylist, 
+    deletePlaylist
   };
 
   return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;

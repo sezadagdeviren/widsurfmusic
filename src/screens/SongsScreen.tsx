@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Platform, FlatList } from 'react-native';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import AlertModal from '../components/AlertModal';
 import SearchBar from '../components/SearchBar';
 import LoadingModal from '../components/LoadingModal';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import * as Animatable from 'react-native-animatable';
-
-// Modular Components
 import { SongItem } from '../components/SongsScreen/SongItem';
 import { PlaylistSelectionModal } from '../components/SongsScreen/PlaylistSelectionModal';
 
@@ -22,6 +18,8 @@ export default function SongsScreen() {
     tracks, 
     currentTrackIndex, 
     isScanning, 
+    scanProgress,
+    scanTotal,
     alert, 
     setAlert, 
     favorites, 
@@ -32,28 +30,58 @@ export default function SongsScreen() {
     addToPlaylist
   } = useMusicPlayer();
 
-  const filteredTracks = tracks.filter(track =>
-    track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    track.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTracks = useMemo(() => {
+    if (!searchQuery) return tracks;
+    const lowerQuery = searchQuery.toLowerCase();
+    return tracks.filter(track =>
+      track.title.toLowerCase().includes(lowerQuery) ||
+      track.artist.toLowerCase().includes(lowerQuery)
+    );
+  }, [tracks, searchQuery]);
+
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 92,
+    offset: 92 * index,
+    index,
+  }), []);
+
+  const renderSongItem = useCallback(({ item: track, index }: { item: any, index: number }) => {
+    const trackIdxInFullList = tracks.findIndex(t => t.id === track.id);
+    const isSelected = currentTrackIndex === trackIdxInFullList;
+    const isFavorite = favorites.includes(track.id);
+    
+    return (
+      <SongItem
+        track={track}
+        index={index}
+        isSelected={isSelected}
+        isFavorite={isFavorite}
+        onPlay={() => playTrack(trackIdxInFullList)}
+        onAddToPlaylist={() => setSelectedTrackForPlaylist(track)}
+        onToggleFavorite={() => addToFavorites(track)}
+      />
+    );
+  }, [tracks, currentTrackIndex, favorites, playTrack, addToFavorites]);
 
   return (
-    <LinearGradient colors={['#191414', '#121212']} className="flex-1">
+    <View className="flex-1 bg-spotify-black">
       <FlatList
         data={filteredTracks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 150 }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        windowSize={10}
+        getItemLayout={getItemLayout}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <View className="p-6 pb-2">
-            <Animatable.View animation="fadeInDown" duration={600}>
+            <View>
               <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-            </Animatable.View>
+            </View>
             <View className="flex-row items-center justify-between mb-4 mt-6">
-              <Animatable.View animation="fadeInRight" delay={200} className="flex-1">
+              <View className="flex-1">
                 <TouchableOpacity 
                   className="bg-spotify-light p-4 rounded-2xl items-center shadow-lg flex-row justify-center" 
                   onPress={() => scanMusicFiles(false)}
@@ -61,27 +89,11 @@ export default function SongsScreen() {
                   <Icon name="sync" size={20} color="white" />
                   <Text className="text-white text-sm font-bold ml-2">Scan Device</Text>
                 </TouchableOpacity>
-              </Animatable.View>
+              </View>
             </View>
           </View>
         }
-        renderItem={({ item: track, index }) => {
-          const trackIdxInFullList = tracks.findIndex(t => t.id === track.id);
-          const isSelected = currentTrackIndex === trackIdxInFullList;
-          const isFavorite = favorites.includes(track.id);
-          
-          return (
-            <SongItem
-              track={track}
-              index={index}
-              isSelected={isSelected}
-              isFavorite={isFavorite}
-              onPlay={() => playTrack(trackIdxInFullList)}
-              onAddToPlaylist={() => setSelectedTrackForPlaylist(track)}
-              onToggleFavorite={() => addToFavorites(track)}
-            />
-          );
-        }}
+        renderItem={renderSongItem}
         ListEmptyComponent={
           !isScanning ? (
             <View className="items-center justify-center py-20 px-10">
@@ -108,7 +120,11 @@ export default function SongsScreen() {
         }}
       />
 
-      <LoadingModal visible={isScanning} />
+      <LoadingModal 
+        visible={isScanning} 
+        progress={scanProgress}
+        total={scanTotal}
+      />
 
       {alert && (
         <AlertModal 
@@ -119,6 +135,6 @@ export default function SongsScreen() {
           onClose={() => setAlert(null)} 
         />
       )}
-    </LinearGradient>
+    </View>
   );
 }
