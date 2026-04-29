@@ -64,11 +64,7 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const { position, duration } = useProgress();
 
   useEffect(() => {
-    const init = async () => {
-      await loadInitialData();
-      scanMusicFiles(true);
-    };
-    init();
+    loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
@@ -88,14 +84,44 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
 
       const queue = await TrackPlayer.getQueue();
       if (queue.length === 0 && lastTracks) {
-        const parsedTracks = JSON.parse(lastTracks);
+        const parsedTracks: MusicTrack[] = JSON.parse(lastTracks);
+        
+        // Önce hızlıca listeyi gösterelim (Kullanıcı beklemesin)
         setTracks(parsedTracks);
-        await TrackPlayer.add(parsedTracks);
-        if (lastIndex) {
-          const index = parseInt(lastIndex);
-          setCurrentTrackIndex(index);
-          await TrackPlayer.skip(index);
+        if (parsedTracks.length > 0) {
+          await TrackPlayer.add(parsedTracks);
+          if (lastIndex) {
+            const index = parseInt(lastIndex);
+            const safeIndex = index < parsedTracks.length ? index : 0;
+            setCurrentTrackIndex(safeIndex);
+            await TrackPlayer.skip(safeIndex);
+          }
         }
+
+        // Temizlik işlemini arka planda, UI yüklendikten sonra yapalım
+        setTimeout(async () => {
+          const validTracks: MusicTrack[] = [];
+          let needsUpdate = false;
+          
+          for (const track of parsedTracks) {
+            const path = track.url.replace('file://', '');
+            if (await RNFS.exists(path)) {
+              validTracks.push(track);
+            } else {
+              needsUpdate = true;
+            }
+          }
+
+          if (needsUpdate) {
+            setTracks(validTracks);
+            await TrackPlayer.reset();
+            if (validTracks.length > 0) {
+              await TrackPlayer.add(validTracks);
+            }
+            await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(validTracks));
+          }
+        }, 1000); // 1 saniye sonra arka planda temizlik yap
+
       } else if (queue.length > 0) {
         const currentIdx = await TrackPlayer.getCurrentTrack();
         setTracks(queue as MusicTrack[]);
@@ -177,36 +203,74 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       const folders = [`${RNFS.ExternalStorageDirectoryPath}/Music`, `${RNFS.ExternalStorageDirectoryPath}/Download`, `${RNFS.ExternalStorageDirectoryPath}/DCIM` ];
-      let foundTracks: MusicTrack[] = [];
+      let discoveredTracks: MusicTrack[] = [];
+      let validTracks: MusicTrack[] = [];
+
+      // 1. Mevcut track'lerin hala var olup olmadığını kontrol et
+      for (const track of tracks) {
+        try {
+          const path = track.url.replace('file://', '');
+          if (await RNFS.exists(path)) {
+            validTracks.push(track);
+          }
+        } catch (e) {
+          // Hata durumunda (izin vs) track'i koruyalım mı sileyim mi? 
+          // Şimdilik sadece gerçekten yoksa silelim.
+        }
+      }
+
+      const existingUrls = new Set(validTracks.map(t => t.url));
+
+      // 2. Klasörleri tara ve yeni dosyaları bul
       for (const folder of folders) {
         if (await RNFS.exists(folder)) {
           const files = await RNFS.readDir(folder);
           const audioFiles = files.filter(f => f.isFile() && /\.(mp3|m4a|wav)$/i.test(f.name));
-          const songs = await Promise.all(audioFiles.map(async (file, i) => {
-            const meta = await extractArtwork(file.path);
-            return { id: `scan-${file.name}-${Date.now()}-${i}`, url: `file://${file.path}`, title: meta.title || file.name.replace(/\.[^/.]+$/, ""), artist: meta.artist || 'Local Scan', artwork: meta.artwork } as MusicTrack;
-          }));
-          foundTracks = [...foundTracks, ...songs];
+          
+          for (const file of audioFiles) {
+            const fileUrl = `file://${file.path}`;
+            if (existingUrls.has(fileUrl)) continue;
+
+            try {
+              const meta = await extractArtwork(file.path);
+              discoveredTracks.push({
+                id: `scan-${file.name}-${Date.now()}-${discoveredTracks.length}`,
+                url: fileUrl,
+                title: meta.title || file.name.replace(/\.[^/.]+$/, ""),
+                artist: meta.artist || 'Local Scan',
+                artwork: meta.artwork
+              });
+            } catch (e) {
+              discoveredTracks.push({
+                id: `scan-${file.name}-${Date.now()}-${discoveredTracks.length}`,
+                url: fileUrl,
+                title: file.name.replace(/\.[^/.]+$/, ""),
+                artist: 'Local Scan',
+              });
+            }
+          }
         }
       }
       
-      if (foundTracks.length > 0) {
-        const trackMap = new Map();
-        tracks.forEach(t => { const key = `${t.title.toLowerCase().trim()}|${t.artist.toLowerCase().trim()}`; if (!trackMap.has(key)) trackMap.set(key, t); });
-        foundTracks.forEach(t => { const key = `${t.title.toLowerCase().trim()}|${t.artist.toLowerCase().trim()}`; if (!trackMap.has(key)) trackMap.set(key, t); });
-        const uniqueTracks = Array.from(trackMap.values());
-        
-        if (uniqueTracks.length > tracks.length) {
-          await TrackPlayer.reset();
-          await TrackPlayer.add(uniqueTracks);
-          setTracks(uniqueTracks);
-          await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(uniqueTracks));
-          if (!silent) {
-            setAlert({ visible: true, title: 'Success', message: `${uniqueTracks.length - tracks.length} new tracks found`, type: 'success' });
-          }
-        } else if (!silent) {
-          setAlert({ visible: true, title: 'Info', message: 'No new music found', type: 'info' });
+      const finalTracks = [...validTracks, ...discoveredTracks];
+      const hasChanges = discoveredTracks.length > 0 || validTracks.length !== tracks.length;
+
+      if (hasChanges) {
+        await TrackPlayer.reset();
+        if (finalTracks.length > 0) {
+          await TrackPlayer.add(finalTracks);
         }
+        setTracks(finalTracks);
+        await AsyncStorage.setItem(LAST_TRACKS_KEY, JSON.stringify(finalTracks));
+        
+        if (!silent) {
+          const message = discoveredTracks.length > 0 
+            ? `${discoveredTracks.length} new tracks added.`
+            : 'Library updated.';
+          setAlert({ visible: true, title: 'Success', message, type: 'success' });
+        }
+      } else if (!silent) {
+        setAlert({ visible: true, title: 'Info', message: 'No changes found', type: 'info' });
       }
     } catch (e) {
       if (!silent) setAlert({ visible: true, title: 'Error', message: 'Scan failed', type: 'error' });

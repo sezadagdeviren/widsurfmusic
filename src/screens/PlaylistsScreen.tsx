@@ -4,7 +4,6 @@ import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import AlertModal from '../components/AlertModal';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, { FadeInRight, FadeInDown, Layout, SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { getArtworkUri } from '../utils/musicUtils';
 
 const Icon = MaterialIcons as any;
@@ -54,7 +53,7 @@ export default function PlaylistsScreen() {
 
   if (selectedPlaylist) {
     return (
-      <Animated.View entering={SlideInRight} exiting={SlideOutRight} className="flex-1 bg-spotify-black">
+      <View className="flex-1 bg-spotify-black">
         <LinearGradient colors={['#282828', '#121212']} className="flex-1">
           <SafeAreaView className="flex-1">
             <View className="flex-row items-center px-6 py-4">
@@ -94,7 +93,7 @@ export default function PlaylistsScreen() {
                 </View>
               }
               renderItem={({ item: track, index }) => (
-                <Animated.View entering={FadeInRight.delay(index * 50)} className="mb-4">
+                <View className="mb-4">
                   <TouchableOpacity 
                     className="flex-row items-center p-3 bg-spotify-dark/40 rounded-2xl border border-white/5"
                     onPress={() => playPlaylist(selectedPlaylist.tracks, index)}
@@ -112,7 +111,7 @@ export default function PlaylistsScreen() {
                     </View>
                     <Icon name="more-vert" size={20} color="#B3B3B3" />
                   </TouchableOpacity>
-                </Animated.View>
+                </View>
               )}
               ListEmptyComponent={
                 <View className="items-center justify-center pt-20">
@@ -123,7 +122,7 @@ export default function PlaylistsScreen() {
             />
           </SafeAreaView>
         </LinearGradient>
-      </Animated.View>
+      </View>
     );
   }
 
@@ -143,13 +142,12 @@ export default function PlaylistsScreen() {
           </TouchableOpacity>
         </View>
 
-        <Animated.FlatList
+        <FlatList
           data={playlists}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
-          itemLayoutAnimation={Layout.springify()}
           renderItem={({ item: playlist, index }) => (
-            <Animated.View entering={FadeInRight.delay(index * 100)} className="mb-4">
+            <View className="mb-4">
               <TouchableOpacity 
                 className="flex-row items-center p-4 bg-spotify-dark/60 rounded-3xl border border-white/5"
                 onPress={() => setSelectedPlaylist(playlist)}
@@ -168,12 +166,11 @@ export default function PlaylistsScreen() {
                   <Icon name="chevron-right" size={24} color="#404040" />
                 </View>
               </TouchableOpacity>
-            </Animated.View>
+            </View>
           )}
-        />
+        </FlatList>
       </SafeAreaView>
 
-      {/* New Playlist Modal */}
       <Modal visible={isModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 bg-black/80 items-center justify-center p-6">
           <View className="bg-spotify-dark p-8 rounded-[40px] w-full border border-white/10 shadow-2xl">
@@ -198,7 +195,6 @@ export default function PlaylistsScreen() {
         </View>
       </Modal>
 
-      {/* Edit Playlist Name Modal */}
       <Modal visible={isEditModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 bg-black/80 items-center justify-center p-6">
           <View className="bg-spotify-dark p-8 rounded-[40px] w-full border border-white/10 shadow-2xl">

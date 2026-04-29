@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, FlatList } from 'react-native';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import { getArtworkUri } from '../utils/musicUtils';
 import AlertModal from '../components/AlertModal';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, { FadeInRight, Layout } from 'react-native-reanimated';
 
 const Icon = MaterialIcons as any;
 
@@ -26,11 +25,10 @@ export default function FavoritesScreen() {
         <Text className="text-white text-3xl font-bold mb-6">Favorites</Text>
       </View>
 
-      <Animated.FlatList
+      <FlatList
         data={favoriteTracks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 160 }}
-        itemLayoutAnimation={Layout.springify()}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center pt-20">
             <Icon name="favorite-border" size={64} color="#282828" />
@@ -42,7 +40,7 @@ export default function FavoritesScreen() {
           const isSelected = currentTrackIndex === originalIndex;
 
           return (
-            <Animated.View entering={FadeInRight.delay(index * 50)} className="px-6 mb-3">
+            <View className="px-6 mb-3">
               <View className={`flex-row items-center p-3 rounded-2xl ${isSelected ? 'bg-spotify-light/60 border border-spotify-green/30' : 'bg-spotify-dark/40'}`}>
                 <TouchableOpacity 
                   className="flex-1 flex-row items-center" 
@@ -65,7 +63,7 @@ export default function FavoritesScreen() {
                   <Icon name="favorite" size={24} color="#1DB954" />
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+            </View>
           );
         }}
       />

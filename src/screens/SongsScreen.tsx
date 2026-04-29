@@ -32,10 +32,21 @@ export default function SongsScreen() {
     addToPlaylist
   } = useMusicPlayer();
 
-  const filteredTracks = tracks.filter(track =>
-    track.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    track.artist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTracks = React.useMemo(() => {
+    if (!searchQuery) return tracks;
+    const lowerQuery = searchQuery.toLowerCase();
+    return tracks.filter(track =>
+      track.title.toLowerCase().includes(lowerQuery) ||
+      track.artist.toLowerCase().includes(lowerQuery)
+    );
+  }, [tracks, searchQuery]);
+
+  // Sabit yükseklik değeri (p-3 (12*2) + w-14 (56) + border/margin (12) ≈ 92)
+  const getItemLayout = React.useCallback((_: any, index: number) => ({
+    length: 92,
+    offset: 92 * index,
+    index,
+  }), []);
 
   return (
     <LinearGradient colors={['#191414', '#121212']} className="flex-1">
@@ -45,15 +56,17 @@ export default function SongsScreen() {
         contentContainerStyle={{ paddingBottom: 150 }}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
+        windowSize={10}
+        getItemLayout={getItemLayout}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
         ListHeaderComponent={
           <View className="p-6 pb-2">
-            <Animatable.View animation="fadeInDown" duration={600}>
+            <View>
               <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-            </Animatable.View>
+            </View>
             <View className="flex-row items-center justify-between mb-4 mt-6">
-              <Animatable.View animation="fadeInRight" delay={200} className="flex-1">
+              <View className="flex-1">
                 <TouchableOpacity 
                   className="bg-spotify-light p-4 rounded-2xl items-center shadow-lg flex-row justify-center" 
                   onPress={() => scanMusicFiles(false)}
@@ -61,7 +74,7 @@ export default function SongsScreen() {
                   <Icon name="sync" size={20} color="white" />
                   <Text className="text-white text-sm font-bold ml-2">Scan Device</Text>
                 </TouchableOpacity>
-              </Animatable.View>
+              </View>
             </View>
           </View>
         }

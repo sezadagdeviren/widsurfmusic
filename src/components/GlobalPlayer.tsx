@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, SafeAreaView, Image } from 'react-native';
 import { useMusicPlayer } from '../hooks/useMusicPlayer';
 import { getArtworkUri } from '../utils/musicUtils';
 import PlayerCard from './PlayerCard';
@@ -55,7 +55,7 @@ export default function GlobalPlayer({ bottomOffset = 49, isStatic = false }: Gl
       >
         <View className="w-12 h-12 bg-spotify-lighter rounded-lg mr-4 overflow-hidden">
           {currentTrack.artwork ? (
-            <Animated.Image source={{ uri: getArtworkUri(currentTrack.artwork) }} className="w-full h-full" />
+            <Image source={{ uri: getArtworkUri(currentTrack.artwork) }} className="w-full h-full" />
           ) : (
             <Icon name="music-note" size={24} color="#B3B3B3" />
           )}
@@ -88,13 +88,12 @@ export default function GlobalPlayer({ bottomOffset = 49, isStatic = false }: Gl
           {miniPlayerContent}
         </View>
       ) : (
-        <Animated.View 
-          entering={SlideInUp.duration(400)} 
+        <View 
           className="absolute left-0 right-0 z-50 px-2"
           style={{ bottom: bottomOffset }}
         >
           {miniPlayerContent}
-        </Animated.View>
+        </View>
       )}
 
       {/* Full Player Modal (Kesinlikle Sızdırmaz Tam Ekran Yapı) */}
