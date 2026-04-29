@@ -15,7 +15,10 @@ import TrackPlayer, {
 } from 'react-native-track-player';
 import SongsScreen from './src/screens/SongsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
+import PlaylistsScreen from './src/screens/PlaylistsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const Icon = MaterialIcons as any;
 
@@ -79,63 +82,79 @@ function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      <Tab.Navigator
-        screenOptions={{
-          tabBarStyle: {
-            backgroundColor: '#121212',
-            borderTopColor: '#282828',
-            borderTopWidth: 1,
-          },
-          tabBarActiveTintColor: '#1DB954',
-          tabBarInactiveTintColor: '#B3B3B3',
-          headerStyle: {
-            backgroundColor: '#000000',
-          },
-          headerTintColor: '#FFFFFF',
-        }}
-      >
-        <Tab.Screen 
-          name="Songs" 
-          options={{ 
-            title: 'Songs',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="music-note" size={size} color={color} />
-            ),
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: '#121212',
+              borderTopColor: '#282828',
+              borderTopWidth: 1,
+            },
+            tabBarActiveTintColor: '#1DB954',
+            tabBarInactiveTintColor: '#B3B3B3',
+            headerStyle: {
+              backgroundColor: '#000000',
+            },
+            headerTintColor: '#FFFFFF',
           }}
         >
-          {() => (
-            <SongsScreen 
-              tracks={tracks}
-              setTracks={setTracks}
-              currentTrackIndex={currentTrackIndex}
-              setCurrentTrackIndex={setCurrentTrackIndex}
-            />
-          )}
-        </Tab.Screen>
-        <Tab.Screen 
-          name="Favorites" 
-          component={FavoritesScreen} 
-          options={{ 
-            title: 'Favorites',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="favorite" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen 
-          name="Settings" 
-          component={SettingsScreen} 
-          options={{ 
-            title: 'Settings',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="settings" size={size} color={color} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+          <Tab.Screen 
+            name="Songs" 
+            options={{ 
+              title: 'Songs',
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="music-note" size={size} color={color} />
+              ),
+            }}
+          >
+            {() => (
+              <SongsScreen 
+                tracks={tracks}
+                setTracks={setTracks}
+                currentTrackIndex={currentTrackIndex}
+                setCurrentTrackIndex={setCurrentTrackIndex}
+              />
+            )}
+          </Tab.Screen>
+          <Tab.Screen 
+            name="Favorites" 
+            options={{ 
+              title: 'Favorites',
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="favorite" size={size} color={color} />
+              ),
+            }}
+          >
+            {() => <FavoritesScreen />}
+          </Tab.Screen>
+          <Tab.Screen 
+            name="Playlists" 
+            options={{ 
+              title: 'Playlists',
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="playlist-play" size={size} color={color} />
+              ),
+            }}
+          >
+            {() => <PlaylistsScreen />}
+          </Tab.Screen>
+          <Tab.Screen 
+            name="Settings" 
+            options={{ 
+              title: 'Settings',
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="settings" size={size} color={color} />
+              ),
+            }}
+          >
+            {() => <SettingsScreen />}
+          </Tab.Screen>
+        </Tab.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
