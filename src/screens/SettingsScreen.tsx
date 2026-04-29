@@ -1,65 +1,67 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const Icon = MaterialIcons as any;
 
 export default function SettingsScreen() {
-  const settings = [
-    { title: 'Audio Quality', value: 'High', icon: 'high-quality' },
-    { title: 'Equalizer', value: 'Off', icon: 'equalizer' },
-    { title: 'Notifications', value: 'On', icon: 'notifications' },
-    { title: 'Dark Mode', value: 'Always On', icon: 'dark-mode' },
-    { title: 'Storage', value: '2.4 GB used', icon: 'storage' },
-    { title: 'About', value: 'Version 1.0.0', icon: 'info' },
+  const settingsOptions = [
+    { id: '1', title: 'Audio Quality', icon: 'high-quality', value: 'Extreme' },
+    { id: '2', title: 'Storage', icon: 'storage', value: '1.2 GB Used' },
+    { id: '3', title: 'Sleep Timer', icon: 'timer', value: 'Off' },
+    { id: '4', title: 'Equalizer', icon: 'graphic-eq', value: '' },
+    { id: '5', title: 'Crossfade', icon: 'shuffle', value: '12s' },
   ];
 
   return (
-    <LinearGradient
-      colors={['#191414', '#121212']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      className="flex-1"
-    >
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
-        <View className="p-6">
-          <Animated.View entering={FadeInDown.duration(600)} className="mb-8 items-center">
-            <View className="w-24 h-24 bg-spotify-green rounded-full items-center justify-center shadow-2xl mb-4">
-              <Icon name="person" size={48} color="white" />
+    <LinearGradient colors={['#191414', '#121212']} className="flex-1">
+      <SafeAreaView className="flex-1">
+        <ScrollView className="flex-1 px-6">
+          <View className="py-12 items-center">
+            <View className="bg-spotify-green/10 p-6 rounded-full mb-4">
+              <Icon name="settings" size={48} color="#1DB954" />
             </View>
-            <Text className="text-white text-2xl font-black">User Account</Text>
-            <Text className="text-spotify-gray text-sm font-bold uppercase tracking-widest mt-1">Premium Member</Text>
-          </Animated.View>
+            <Text className="text-white text-2xl font-bold">Settings</Text>
+            <Text className="text-spotify-gray text-sm mt-1">Customize your experience</Text>
+          </View>
 
-          <View className="space-y-4">
-            {settings.map((item, index) => (
-              <Animated.View 
-                key={item.title}
-                entering={FadeInUp.delay(index * 100)}
+          <View className="mb-8">
+            <Text className="text-white text-lg font-bold mb-4">Playback</Text>
+            {settingsOptions.map((option) => (
+              <TouchableOpacity 
+                key={option.id} 
+                className="flex-row items-center justify-between py-4 border-b border-white/5"
               >
-                <TouchableOpacity className="bg-spotify-dark/40 p-5 rounded-[24px] flex-row items-center border border-white/5 shadow-sm">
-                  <View className="w-12 h-12 bg-spotify-lighter/20 rounded-xl items-center justify-center mr-4">
-                    <Icon name={item.icon} size={24} color="#1DB954" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-white text-lg font-bold">{item.title}</Text>
-                    <Text className="text-spotify-gray text-sm font-medium mt-0.5">{item.value}</Text>
-                  </View>
-                  <Icon name="chevron-right" size={24} color="#333" />
-                </TouchableOpacity>
-              </Animated.View>
+                <View className="flex-row items-center">
+                  <Icon name={option.icon} size={24} color="#B3B3B3" />
+                  <Text className="text-white text-base ml-4">{option.title}</Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-spotify-gray text-sm mr-2">{option.value}</Text>
+                  <Icon name="chevron-right" size={20} color="#404040" />
+                </View>
+              </TouchableOpacity>
             ))}
           </View>
 
-          <Animated.View entering={FadeInUp.delay(800)} className="mt-12">
-            <TouchableOpacity className="bg-red-900/20 p-5 rounded-[24px] items-center border border-red-900/30">
-              <Text className="text-red-500 font-black text-lg">Log Out</Text>
+          <View className="mb-10">
+            <Text className="text-white text-lg font-bold mb-4">Support</Text>
+            <TouchableOpacity className="flex-row items-center py-4">
+              <Icon name="help-outline" size={24} color="#B3B3B3" />
+              <Text className="text-white text-base ml-4">Help Center</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </ScrollView>
+            <TouchableOpacity className="flex-row items-center py-4">
+              <Icon name="info-outline" size={24} color="#B3B3B3" />
+              <Text className="text-white text-base ml-4">Terms and Conditions</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="items-center pb-10">
+            <Text className="text-spotify-gray text-xs">Music Player Pro v1.0.0</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 }

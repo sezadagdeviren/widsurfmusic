@@ -1,80 +1,34 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
 
 const Icon = MaterialIcons as any;
 
 interface ControlsProps {
+  isPlaying: boolean;
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
-  isPlaying: boolean;
 }
 
-export default function Controls({ onPlayPause, onNext, onPrevious, isPlaying }: ControlsProps) {
+export default function Controls({ isPlaying, onPlayPause, onNext, onPrevious }: ControlsProps) {
   return (
-    <View style={styles.container}>
-      <TouchableOpacity 
-        onPress={onPrevious} 
-        style={styles.secondaryButton}
-      >
-        <Icon name="skip-previous" size={32} color="white" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        onPress={onPlayPause}
-        style={styles.playButtonContainer}
-      >
-        <LinearGradient
-          colors={['#1DB954', '#17a34a']}
-          style={styles.playButtonGradient}
-        >
-          <Icon
-            name={isPlaying ? "pause" : "play-arrow"}
-            size={42}
-            color="white"
-          />
-        </LinearGradient>
+    <View className="flex-row items-center justify-center space-x-8">
+      <TouchableOpacity onPress={onPrevious} activeOpacity={0.7} className="p-2">
+        <Icon name="skip-previous" size={40} color="white" />
       </TouchableOpacity>
       
       <TouchableOpacity 
-        onPress={onNext} 
-        style={styles.secondaryButton}
+        onPress={onPlayPause} 
+        activeOpacity={0.8}
+        className="bg-white w-20 h-20 rounded-full items-center justify-center shadow-xl"
       >
-        <Icon name="skip-next" size={32} color="white" />
+        <Icon name={isPlaying ? "pause" : "play-arrow"} size={48} color="black" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={onNext} activeOpacity={0.7} className="p-2">
+        <Icon name="skip-next" size={40} color="white" />
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-  },
-  secondaryButton: {
-    padding: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 30,
-  },
-  playButtonContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    shadowColor: '#1DB954',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  playButtonGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

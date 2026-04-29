@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StatusBar } from 'react-native';
+import { createBottomTabNavigator, BottomTabBar } from '@react-navigation/bottom-tabs';
+import { View, Text, StatusBar, SafeAreaView } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,15 +11,28 @@ import SongsScreen from './src/screens/SongsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import PlaylistsScreen from './src/screens/PlaylistsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { MusicProvider } from './src/context/MusicContext';
+import GlobalPlayer from './src/components/GlobalPlayer';
 
 const Icon = MaterialIcons as any;
 const Tab = createBottomTabNavigator();
+const TAB_BAR_HEIGHT = 60;
 
 // Uyarıları engellemek için ekranları açıkça tanımlıyoruz
 const SongsComponent = () => <SongsScreen />;
 const FavoritesComponent = () => <FavoritesScreen />;
 const PlaylistsComponent = () => <PlaylistsScreen />;
 const SettingsComponent = () => <SettingsScreen />;
+
+// 3 Katmanlı Yapı: Mini Player + Bottom Tab Bar Birleşimi
+const CustomTabBar = (props: any) => {
+  return (
+    <View>
+      <GlobalPlayer isStatic />
+      <BottomTabBar {...props} />
+    </View>
+  );
+};
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -52,8 +65,12 @@ export default function App() {
         progressUpdateEventInterval: 1,
       });
       setIsReady(true);
-    } catch (error) {
-      console.error('Error setting up player:', error);
+    } catch (error: any) {
+      if (error.message.includes('already been initialized')) {
+        setIsReady(true);
+      } else {
+        console.error('Error setting up player:', error);
+      }
     }
   };
 
@@ -67,54 +84,59 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarStyle: {
-              backgroundColor: '#121212',
-              borderTopColor: '#282828',
-              borderTopWidth: 1,
-            },
-            tabBarActiveTintColor: '#1DB954',
-            tabBarInactiveTintColor: '#B3B3B3',
-          }}
-        >
-          <Tab.Screen 
-            name="Songs" 
-            component={SongsComponent}
-            options={{ 
-              title: 'Songs',
-              tabBarIcon: ({ color, size }) => <Icon name="music-note" size={size} color={color} />,
+      <MusicProvider>
+        <NavigationContainer>
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
+          <Tab.Navigator
+            tabBar={(props) => <CustomTabBar {...props} />}
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: {
+                backgroundColor: '#121212',
+                borderTopColor: '#282828',
+                borderTopWidth: 1,
+                height: TAB_BAR_HEIGHT,
+                paddingBottom: 8,
+              },
+              tabBarActiveTintColor: '#1DB954',
+              tabBarInactiveTintColor: '#B3B3B3',
             }}
-          />
-          <Tab.Screen 
-            name="Favorites" 
-            component={FavoritesComponent}
-            options={{ 
-              title: 'Favorites',
-              tabBarIcon: ({ color, size }) => <Icon name="favorite" size={size} color={color} />,
-            }}
-          />
-          <Tab.Screen 
-            name="Playlists" 
-            component={PlaylistsComponent}
-            options={{ 
-              title: 'Playlists',
-              tabBarIcon: ({ color, size }) => <Icon name="playlist-play" size={size} color={color} />,
-            }}
-          />
-          <Tab.Screen 
-            name="Settings" 
-            component={SettingsComponent}
-            options={{ 
-              title: 'Settings',
-              tabBarIcon: ({ color, size }) => <Icon name="settings" size={size} color={color} />,
-            }}
-          />
-        </Tab.Navigator>
-      </NavigationContainer>
+          >
+            <Tab.Screen 
+              name="Songs" 
+              component={SongsComponent}
+              options={{ 
+                title: 'Songs',
+                tabBarIcon: ({ color, size }) => <Icon name="music-note" size={size} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Favorites" 
+              component={FavoritesComponent}
+              options={{ 
+                title: 'Favorites',
+                tabBarIcon: ({ color, size }) => <Icon name="favorite" size={size} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Playlists" 
+              component={PlaylistsComponent}
+              options={{ 
+                title: 'Playlists',
+                tabBarIcon: ({ color, size }) => <Icon name="playlist-play" size={size} color={color} />,
+              }}
+            />
+            <Tab.Screen 
+              name="Settings" 
+              component={SettingsComponent}
+              options={{ 
+                title: 'Settings',
+                tabBarIcon: ({ color, size }) => <Icon name="settings" size={size} color={color} />,
+              }}
+            />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </MusicProvider>
     </GestureHandlerRootView>
   );
 }
