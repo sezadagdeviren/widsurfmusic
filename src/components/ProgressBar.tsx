@@ -9,6 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 
+import { formatTime } from '../utils/musicUtils';
+
 export default function ProgressBar() {
   const { position, duration } = useProgress();
   const progress = useSharedValue(0);
@@ -21,12 +23,6 @@ export default function ProgressBar() {
       progress.value = position / duration;
     }
   }, [position, duration]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const seekTo = (p: number) => {
     if (duration > 0) {

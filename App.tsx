@@ -1,45 +1,28 @@
-/**
- * Music Player App - Music Player with react-native-track-player
- * @format
- */
-
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StatusBar } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import TrackPlayer, {
-  useTrackPlayerEvents,
-  Event,
-  Capability,
-} from 'react-native-track-player';
+import TrackPlayer, { Capability } from 'react-native-track-player';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Screens
 import SongsScreen from './src/screens/SongsScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import PlaylistsScreen from './src/screens/PlaylistsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
 const Icon = MaterialIcons as any;
-
 const Tab = createBottomTabNavigator();
 
-function App() {
-  const [isReady, setIsReady] = useState(false);
-  const [tracks, setTracks] = useState<any[]>([]);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+// Uyarıları engellemek için ekranları açıkça tanımlıyoruz
+const SongsComponent = () => <SongsScreen />;
+const FavoritesComponent = () => <FavoritesScreen />;
+const PlaylistsComponent = () => <PlaylistsScreen />;
+const SettingsComponent = () => <SettingsScreen />;
 
-  useTrackPlayerEvents([Event.RemotePlay, Event.RemotePause, Event.RemoteNext, Event.RemotePrevious], async (event) => {
-    if (event.type === Event.RemotePlay) {
-      await TrackPlayer.play();
-    } else if (event.type === Event.RemotePause) {
-      await TrackPlayer.pause();
-    } else if (event.type === Event.RemoteNext) {
-      await TrackPlayer.skipToNext();
-    } else if (event.type === Event.RemotePrevious) {
-      await TrackPlayer.skipToPrevious();
-    }
-  });
+export default function App() {
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     setupPlayer();
@@ -58,6 +41,7 @@ function App() {
           Capability.SkipToNext,
           Capability.SkipToPrevious,
           Capability.Stop,
+          Capability.SeekTo,
         ],
         compactCapabilities: [
           Capability.Play,
@@ -95,67 +79,42 @@ function App() {
             },
             tabBarActiveTintColor: '#1DB954',
             tabBarInactiveTintColor: '#B3B3B3',
-            headerStyle: {
-              backgroundColor: '#000000',
-            },
-            headerTintColor: '#FFFFFF',
           }}
         >
           <Tab.Screen 
             name="Songs" 
+            component={SongsComponent}
             options={{ 
               title: 'Songs',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="music-note" size={size} color={color} />
-              ),
+              tabBarIcon: ({ color, size }) => <Icon name="music-note" size={size} color={color} />,
             }}
-          >
-            {() => (
-              <SongsScreen 
-                tracks={tracks}
-                setTracks={setTracks}
-                currentTrackIndex={currentTrackIndex}
-                setCurrentTrackIndex={setCurrentTrackIndex}
-              />
-            )}
-          </Tab.Screen>
+          />
           <Tab.Screen 
             name="Favorites" 
+            component={FavoritesComponent}
             options={{ 
               title: 'Favorites',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="favorite" size={size} color={color} />
-              ),
+              tabBarIcon: ({ color, size }) => <Icon name="favorite" size={size} color={color} />,
             }}
-          >
-            {() => <FavoritesScreen />}
-          </Tab.Screen>
+          />
           <Tab.Screen 
             name="Playlists" 
+            component={PlaylistsComponent}
             options={{ 
               title: 'Playlists',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="playlist-play" size={size} color={color} />
-              ),
+              tabBarIcon: ({ color, size }) => <Icon name="playlist-play" size={size} color={color} />,
             }}
-          >
-            {() => <PlaylistsScreen />}
-          </Tab.Screen>
+          />
           <Tab.Screen 
             name="Settings" 
+            component={SettingsComponent}
             options={{ 
               title: 'Settings',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="settings" size={size} color={color} />
-              ),
+              tabBarIcon: ({ color, size }) => <Icon name="settings" size={size} color={color} />,
             }}
-          >
-            {() => <SettingsScreen />}
-          </Tab.Screen>
+          />
         </Tab.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
   );
 }
-
-export default App;
