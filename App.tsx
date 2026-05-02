@@ -24,10 +24,13 @@ const FavoritesComponent = () => <FavoritesScreen />;
 const PlaylistsComponent = () => <PlaylistsScreen />;
 const SettingsComponent = () => <SettingsScreen />;
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 // 3 Katmanlı Yapı: Mini Player + Bottom Tab Bar Birleşimi
 const CustomTabBar = (props: any) => {
+  const insets = useSafeAreaInsets();
   return (
-    <View>
+    <View style={{ paddingBottom: insets.bottom }}>
       <GlobalPlayer isStatic />
       <BottomTabBar {...props} />
     </View>
